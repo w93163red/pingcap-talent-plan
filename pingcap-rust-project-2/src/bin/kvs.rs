@@ -2,8 +2,9 @@ use clap::{App, Arg, SubCommand, AppSettings};
 use kvs::KvStore;
 use std::process;
 use std::process::exit;
+use anyhow::Result;
 
-fn main() {
+fn main() -> Result<()> {
     let matches = App::new("kvs")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
