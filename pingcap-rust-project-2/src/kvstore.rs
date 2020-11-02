@@ -1,17 +1,19 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use std::env;
+use std::{collections::HashMap, fs::OpenOptions};
+use std::{fs::File, path::PathBuf};
 
-#[derive(Default)]
 pub struct KvStore {
-    map: HashMap<String, String>
+    map: HashMap<String, String>,
+    log_file: File,
 }
-
 
 impl KvStore {
     pub fn new() -> Self {
         KvStore {
-            map: HashMap::new()
+            map: HashMap::new(),
+            log_file: open_log_file(),
         }
     }
 
@@ -20,6 +22,12 @@ impl KvStore {
     }
 
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
+        let command = Command::Set {
+            key: key.clone(),
+            value: value.clone(),
+        };
+        let log_string: String = serde_json::to_string(&command).unwrap();
+        serde_json::to_writer(&self.log_file, &log_string)?;
         self.map.insert(key, value);
         Ok(())
     }
@@ -34,3 +42,20 @@ impl KvStore {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+enum Command {
+    Set { key: String, value: String },
+    Rm { key: String },
+}
+
+fn open_log_file() -> File {
+    let file_name = "/home/ling/pingcap-talent-plan/log.txt";
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .append(true)
+        .open(file_name)
+        .expect("file cannot open");
+    file
+}
