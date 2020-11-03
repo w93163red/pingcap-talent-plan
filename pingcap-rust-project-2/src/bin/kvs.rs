@@ -1,7 +1,8 @@
 use anyhow::Result;
 use clap::{App, AppSettings, Arg, SubCommand};
 use kvs::KvStore;
-use std::process;
+use std::env;
+use std::path::PathBuf;
 use std::process::exit;
 
 fn main() -> Result<()> {
@@ -27,7 +28,8 @@ fn main() -> Result<()> {
             ),
         )
         .get_matches();
-    let mut kvs = KvStore::new();
+    let work_dir = env::current_dir()?;
+    let mut kvs = KvStore::new(work_dir);
     match matches.subcommand() {
         ("get", Some(matches)) => {
             let key = matches.value_of("KEY").expect("Key is not existed");
@@ -37,8 +39,11 @@ fn main() -> Result<()> {
         ("set", Some(matches)) => {
             let key = matches.value_of("KEY").expect("Key is not existed");
             let value = matches.value_of("VALUE").expect("Value is not existed");
-            kvs.set(key.into(), value.into())?;
-            exit(1);
+            if kvs.set(key.into(), value.into()).is_ok() {
+                exit(0);
+            } else {
+                exit(1);
+            }
         }
         ("rm", Some(matches)) => {
             let key = matches.value_of("KEY").expect("Key is not existed");
