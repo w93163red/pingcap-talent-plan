@@ -1,11 +1,9 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::{collections::HashMap, fs::OpenOptions};
-use std::{env, io::BufRead, io::BufReader};
-use std::{fs::File, path::PathBuf};
-use std::hint::unreachable_unchecked;
 use std::io::Write;
+use std::{collections::HashMap, fs::OpenOptions};
+use std::{fs::File, path::PathBuf};
+use std::{io::BufRead, io::BufReader};
 
 pub struct KvStore {
     map: HashMap<String, String>,
@@ -24,9 +22,9 @@ impl KvStore {
         for line in reader.lines() {
             let data = serde_json::from_str::<Command>(&line.unwrap())?;
             match data {
-                Command::Set {key: k, value: v} => self.map.insert(k, v),
-                Command::Rm {key: k} => self.map.remove(&k),
-                _ => {unimplemented!()}
+                Command::Set { key: k, value: v } => self.map.insert(k, v),
+                Command::Rm { key: k } => self.map.remove(&k),
+                _ => unimplemented!(),
             };
         }
         // let data: Command = serde_json::from_reader(reader)?;
@@ -39,7 +37,7 @@ impl KvStore {
             value: value.clone(),
         };
         serde_json::to_writer(&self.log_file, &command)?;
-        self.log_file.write("\n".as_bytes());
+        self.log_file.write(b"\n");
         self.map.insert(key, value);
         Ok(())
     }
@@ -70,12 +68,11 @@ enum Command {
 }
 
 fn open_log_file(path: impl Into<PathBuf>) -> File {
-    let file = OpenOptions::new()
+    OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
         .append(true)
         .open(path.into())
-        .expect("file cannot open");
-    file
+        .expect("file cannot open")
 }
