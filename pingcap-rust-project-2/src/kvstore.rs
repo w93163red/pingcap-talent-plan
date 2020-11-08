@@ -1,6 +1,8 @@
+use anyhow::bail;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
+use std::path::Path;
 use std::{collections::HashMap, fs::OpenOptions};
 use std::{fs::File, path::PathBuf};
 use std::{io::BufRead, io::BufReader};
@@ -17,17 +19,6 @@ impl KvStore {
     }
 
     pub fn get(&mut self, key: String) -> Result<Option<String>> {
-        // read all logs from the file
-        let reader = BufReader::new(&self.log_file);
-        for line in reader.lines() {
-            let data = serde_json::from_str::<Command>(&line.unwrap())?;
-            match data {
-                Command::Set { key: k, value: v } => self.map.insert(k, v),
-                Command::Rm { key: k } => self.map.remove(&k),
-                _ => unimplemented!(),
-            };
-        }
-        // let data: Command = serde_json::from_reader(reader)?;
         Ok(self.map.get(&key).cloned())
     }
 
@@ -45,19 +36,33 @@ impl KvStore {
     pub fn remove(&mut self, key: String) -> Result<()> {
         let command = Command::Rm { key: key.clone() };
         serde_json::to_writer(&self.log_file, &command)?;
-        self.map.remove(&key);
-        Ok(())
+        if self.map.remove(&key).is_some() {
+            Ok(())
+        } else {
+            bail!("Key not found")
+        }
     }
 
+    // TODO: open function should process the historic command first
     pub fn open(path: impl Into<PathBuf>) -> Result<KvStore> {
         // since the test is only parsing the directory
         let mut path: PathBuf = path.into();
         path.push("log.txt");
-        Ok(KvStore {
+        let mut kvStore = KvStore {
             map: HashMap::new(),
             path: path.clone(),
-            log_file: open_log_file(path),
-        })
+            log_file: open_log_file(path.clone()),
+        };
+        let reader = BufReader::new(kvStore.log_file.try_clone()?);
+        for line in reader.lines() {
+            let data = serde_json::from_str::<Command>(&line?)?;
+            match data {
+                Command::Set { key: k, value: v } => kvStore.set(k, v),
+                Command::Rm { key: k } => kvStore.remove(k),
+                _ => unimplemented!(),
+            };
+        }
+        Ok(kvStore)
     }
 }
 

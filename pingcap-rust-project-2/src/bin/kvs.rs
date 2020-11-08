@@ -33,8 +33,12 @@ fn main() -> Result<()> {
     match matches.subcommand() {
         ("get", Some(matches)) => {
             let key = matches.value_of("KEY").expect("Key is not existed");
-            kvs.get(key.into())?;
-            exit(1);
+            if let Ok(Some(val)) = kvs.get(key.into()) {
+                println!("{}", val);
+            } else {
+                println!("Key not found");
+            }
+            exit(0);
         }
         ("set", Some(matches)) => {
             let key = matches.value_of("KEY").expect("Key is not existed");
@@ -47,8 +51,12 @@ fn main() -> Result<()> {
         }
         ("rm", Some(matches)) => {
             let key = matches.value_of("KEY").expect("Key is not existed");
-            kvs.remove(key.into())?;
-            exit(1);
+            if kvs.remove(key.into()).is_ok() {
+                exit(0);
+            } else {
+                println!("Key not found");
+                exit(1);
+            }
         }
         _ => unreachable!(),
     }
