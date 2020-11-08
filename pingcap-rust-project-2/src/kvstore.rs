@@ -43,7 +43,6 @@ impl KvStore {
         }
     }
 
-    // TODO: open function should process the historic command first
     pub fn open(path: impl Into<PathBuf>) -> Result<KvStore> {
         // since the test is only parsing the directory
         let mut path: PathBuf = path.into();
